@@ -35,8 +35,11 @@ import com.nike.riposte.util.Matcher;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.HttpMethod;
 import okhttp3.MediaType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
@@ -51,10 +54,11 @@ import static com.nike.cerberus.endpoints.AuditableEventEndpoint.auditableEvent;
 @RiposteEndpoint
 public class AuthenticateStsIdentity extends StandardEndpoint<Void, AuthTokenResponse> {
 
+    protected final Logger log = LoggerFactory.getLogger(this.getClass());
+
     private final AuthenticationService authenticationService;
     private final EventProcessorService eventProcessorService;
     private final AwsStsClient awsStsClient;
-    private static final MediaType DEFAULT_MEDIA_TYPE = MediaType.parse("application/json");
 
     @Inject
     public AuthenticateStsIdentity(AuthenticationService authenticationService,
@@ -77,6 +81,8 @@ public class AuthenticateStsIdentity extends StandardEndpoint<Void, AuthTokenRes
     }
 
     private ResponseInfo<AuthTokenResponse> authenticate(RequestInfo<Void> request) {
+        String guid = UUID.randomUUID().toString();
+        log.info("guid: {} - STS AUTH CALLED", guid);
         final String headerXAmzDate = getHeaderXAmzDate(request);
         final String headerXAmzSecurityToken = getHeaderXAmzSecurityToken(request);
         final String headerAuthorization = getHeaderAuthorization(request);
@@ -87,11 +93,14 @@ public class AuthenticateStsIdentity extends StandardEndpoint<Void, AuthTokenRes
                 throw new ApiException(DefaultApiError.MISSING_AWS_SIGNATURE_HEADERS);
             }
 
+
+            log.info("guid: {} - Getting identity from AWS", guid);
             AwsStsHttpHeader header = new AwsStsHttpHeader(headerXAmzDate, headerXAmzSecurityToken, headerAuthorization);
             GetCallerIdentityResponse getCallerIdentityResponse = awsStsClient.getCallerIdentity(header);
             iamPrincipalArn = getCallerIdentityResponse.getGetCallerIdentityResult().getArn();
-
-            authResponse = authenticationService.stsAuthenticate(iamPrincipalArn);
+            log.info("guid: {} - Generating auth response for arn: {}", guid, iamPrincipalArn);
+            authResponse = authenticationService.stsAuthenticate(iamPrincipalArn, guid);
+            log.info("guid: {} - Generated auth response for arn: {}", guid, iamPrincipalArn);
         } catch (ApiException e) {
             eventProcessorService.ingestEvent(auditableEvent(
                     iamPrincipalArn, request, getClass().getSimpleName())
@@ -110,6 +119,7 @@ public class AuthenticateStsIdentity extends StandardEndpoint<Void, AuthTokenRes
                 .build()
         );
 
+        log.info("guid: {} - Returning auth response for arn: {}", guid, iamPrincipalArn);
         return ResponseInfo.newBuilder(authResponse).build();
     }
 

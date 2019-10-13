@@ -253,15 +253,18 @@ public class AuthenticationService {
      * @param iamPrincipalArn IAM role ARN
      * @return Unencrypted auth response
      */
-    public AuthTokenResponse stsAuthenticate(final String iamPrincipalArn) {
+    public AuthTokenResponse stsAuthenticate(final String iamPrincipalArn, String guid) {
         final Map<String, String> authPrincipalMetadata = generateCommonIamPrincipalAuthMetadata(iamPrincipalArn);
         authPrincipalMetadata.put(CerberusPrincipal.METADATA_KEY_AWS_IAM_PRINCIPAL_ARN, iamPrincipalArn);
 
         final AwsIamRoleRecord iamRoleRecord;
+        logger.info("guid: {} - Fetching iam principal record from db for arn: {}", guid, iamPrincipalArn);
         iamRoleRecord = getIamPrincipalRecord(iamPrincipalArn);
 
         final Set<String> policies = buildCompleteSetOfPolicies(iamPrincipalArn);
+        logger.info("guid: {} - Creating token for arn: {}", guid, iamPrincipalArn);
         AuthTokenResponse authResponse = createToken(iamRoleRecord.getAwsIamRoleArn(), PrincipalType.IAM, policies, authPrincipalMetadata, iamTokenTTL);
+        logger.info("guid: {} - Created and returning token for arn: {}", guid, iamPrincipalArn);
         return authResponse;
     }
 
