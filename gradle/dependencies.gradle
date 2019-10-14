@@ -78,11 +78,10 @@ dependencies {
             "com.okta.authn.sdk:okta-authn-sdk-impl:0.1.0",
             "org.reflections:reflections:0.9.11",
             "com.github.ben-manes.caffeine:caffeine:2.8.0",
-            
+
             'io.jsonwebtoken:jjwt-api:0.10.5',
             'io.jsonwebtoken:jjwt-impl:0.10.5',
             'io.jsonwebtoken:jjwt-jackson:0.10.5'
-
     )
 
     testCompile (
