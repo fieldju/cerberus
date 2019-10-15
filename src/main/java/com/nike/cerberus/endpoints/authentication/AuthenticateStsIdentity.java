@@ -34,7 +34,6 @@ import com.nike.riposte.util.AsyncNettyHelper;
 import com.nike.riposte.util.Matcher;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.HttpMethod;
-import okhttp3.MediaType;
 
 import javax.inject.Inject;
 import java.util.concurrent.CompletableFuture;
@@ -54,7 +53,6 @@ public class AuthenticateStsIdentity extends StandardEndpoint<Void, AuthTokenRes
     private final AuthenticationService authenticationService;
     private final EventProcessorService eventProcessorService;
     private final AwsStsClient awsStsClient;
-    private static final MediaType DEFAULT_MEDIA_TYPE = MediaType.parse("application/json");
 
     @Inject
     public AuthenticateStsIdentity(AuthenticationService authenticationService,
@@ -88,6 +86,7 @@ public class AuthenticateStsIdentity extends StandardEndpoint<Void, AuthTokenRes
             }
 
             AwsStsHttpHeader header = new AwsStsHttpHeader(headerXAmzDate, headerXAmzSecurityToken, headerAuthorization);
+
             GetCallerIdentityResponse getCallerIdentityResponse = awsStsClient.getCallerIdentity(header);
             iamPrincipalArn = getCallerIdentityResponse.getGetCallerIdentityResult().getArn();
 

@@ -81,7 +81,8 @@ dependencies {
 
             'io.jsonwebtoken:jjwt-api:0.10.5',
             'io.jsonwebtoken:jjwt-impl:0.10.5',
-            'io.jsonwebtoken:jjwt-jackson:0.10.5'
+            'io.jsonwebtoken:jjwt-jackson:0.10.5',
+            "io.github.resilience4j:resilience4j-all:1.1.0"
     )
 
     testCompile (
