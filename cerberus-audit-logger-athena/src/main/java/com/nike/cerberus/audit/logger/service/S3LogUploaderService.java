@@ -18,7 +18,6 @@ package com.nike.cerberus.audit.logger.service;
 
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.rolling.AuditLogsS3TimeBasedRollingPolicy;
-import ch.qos.logback.core.rolling.FiveMinuteRollingFileAppender;
 import com.amazonaws.services.s3.AmazonS3;
 import com.nike.cerberus.audit.logger.S3ClientFactory;
 import java.io.File;
@@ -32,7 +31,6 @@ import javax.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -49,38 +47,34 @@ import org.springframework.stereotype.Component;
 @Component
 public class S3LogUploaderService {
 
-  private static final String ATHENA_LOG_NAME = "athena-audit-logger";
-  private static final String ATHENA_LOG_APPENDER = "athena-log-appender";
-
   private final ExecutorService executor = Executors.newSingleThreadExecutor();
   private final AmazonS3 amazonS3;
   private final String bucket;
   private final String bucketRegion;
-  private final boolean athenaLoggingEventListenerEnabled;
   private final AthenaService athenaService;
+  private final Optional<AuditLogsS3TimeBasedRollingPolicy<ILoggingEvent>> rollingPolicy;
 
   @Autowired
   public S3LogUploaderService(
       @Value("${cerberus.audit.athena.bucket}") String bucket,
       @Value("${cerberus.audit.athena.bucketRegion}") String bucketRegion,
-      @Value("${cerberus.audit.athena.enabled:false}") boolean athenaLoggingEventListenerEnabled,
       AthenaService athenaService,
-      S3ClientFactory s3ClientFactory) {
+      S3ClientFactory s3ClientFactory,
+      Optional<AuditLogsS3TimeBasedRollingPolicy<ILoggingEvent>> rollingPolicy) {
     this.bucket = bucket;
     this.bucketRegion = bucketRegion;
-    this.athenaLoggingEventListenerEnabled = athenaLoggingEventListenerEnabled;
     this.athenaService = athenaService;
+    this.rollingPolicy = rollingPolicy;
 
     amazonS3 = s3ClientFactory.getClient(bucketRegion);
     log.info("S3 Uploader Service initialized");
 
     // Inject this into the logback rolling policy which was created before guice land exists
-    getRollingPolicy()
-        .ifPresent(
-            policy -> {
-              log.info("S3 Rolling Policy detected injecting S3 Log Uploader Service");
-              policy.setS3LogUploaderService(this);
-            });
+    rollingPolicy.ifPresent(
+        policy -> {
+          log.info("S3 Rolling Policy detected injecting S3 Log Uploader Service");
+          policy.setS3LogUploaderService(this);
+        });
   }
 
   /** Convenience method for sleeping */
@@ -148,6 +142,7 @@ public class S3LogUploaderService {
           rolledLogFile.canRead(),
           i);
       i++;
+      // TODO issue with this while loop
     } while (!rolledLogFile.exists() || i >= 30);
 
     // if file does not exist or empty, do nothing
@@ -183,7 +178,7 @@ public class S3LogUploaderService {
   @PreDestroy
   public void executeServerShutdownHook() {
     log.info("Shutdown event detected, telling appender to roll current log");
-    getRollingPolicy().ifPresent(AuditLogsS3TimeBasedRollingPolicy::rollover);
+    rollingPolicy.ifPresent(AuditLogsS3TimeBasedRollingPolicy::rollover);
     log.info("Letting thread pool finish uploading remaining queued logs, with 10 minute timeout");
     executor.shutdown();
     log.info("Finished processing log upload queue");
@@ -193,29 +188,5 @@ public class S3LogUploaderService {
       log.error("Failed to wait and allow executor to finish jobs, shutting down now");
       executor.shutdownNow();
     }
-  }
-
-  /**
-   * @return the AuditLogsS3FixedWindowRollingPolicy from the audit logger that implements
-   *     ServerShutdownHook so that it can be registered with the shutdown hooks
-   */
-  private Optional<AuditLogsS3TimeBasedRollingPolicy<ILoggingEvent>> getRollingPolicy() {
-
-    log.info("S3 Uploader Service getting rolling policy");
-
-    if (athenaLoggingEventListenerEnabled) {
-      ch.qos.logback.classic.Logger auditLogger =
-          (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(ATHENA_LOG_NAME);
-
-      FiveMinuteRollingFileAppender<ILoggingEvent> appender =
-          (FiveMinuteRollingFileAppender<ILoggingEvent>)
-              auditLogger.getAppender(ATHENA_LOG_APPENDER);
-      // TODO figure out if appender is always null and when it should not be null
-      if (appender != null) {
-        return Optional.ofNullable(
-            (AuditLogsS3TimeBasedRollingPolicy<ILoggingEvent>) appender.getRollingPolicy());
-      }
-    }
-    return Optional.empty();
   }
 }

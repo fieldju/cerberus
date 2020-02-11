@@ -20,11 +20,13 @@ import com.nike.cerberus.audit.logger.service.S3LogUploaderService;
 import com.nike.internal.util.StringUtils;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.stream.Stream;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 /** Rolling policy that will copy audit logs to S3 if enabled when the logs roll. */
+@Slf4j
 @Component
 public class AuditLogsS3TimeBasedRollingPolicy<E> extends TimeBasedRollingPolicy<E> {
 
@@ -43,6 +45,7 @@ public class AuditLogsS3TimeBasedRollingPolicy<E> extends TimeBasedRollingPolicy
 
   @Autowired
   public void setS3LogUploaderService(S3LogUploaderService s3LogUploaderService) {
+    log.info("Setting up S3 log uploader service in AuditLogsS3TimeBasedRollingPolicy");
     this.s3LogUploaderService = s3LogUploaderService;
     if (logChunkFileS3Queue.size() > 0) {
       Stream.generate(() -> logChunkFileS3Queue.poll()).forEach(s3LogUploaderService::ingestLog);

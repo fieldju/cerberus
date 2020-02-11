@@ -25,14 +25,12 @@ import ch.qos.logback.core.rolling.FiveMinuteRollingFileAppender;
 import ch.qos.logback.core.util.FileSize;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.*;
 
 @Configuration
 @ConditionalOnProperty("cerberus.audit.athena.enabled")
@@ -94,6 +92,26 @@ public class AthenaAuditLoggerConfiguration {
     logger.setLevel(Level.INFO);
     logger.setAdditive(false);
     athenaAuditLogger = logger;
+  }
+
+  /**
+   * @return the AuditLogsS3FixedWindowRollingPolicy from the audit logger that implements
+   *     ServerShutdownHook so that it can be registered with the shutdown hooks
+   */
+  @Bean
+  public Optional<AuditLogsS3TimeBasedRollingPolicy<ILoggingEvent>> getRollingPolicy() {
+
+    ch.qos.logback.classic.Logger auditLogger = (ch.qos.logback.classic.Logger) athenaAuditLogger;
+
+    FiveMinuteRollingFileAppender<ILoggingEvent> appender =
+        (FiveMinuteRollingFileAppender<ILoggingEvent>)
+            auditLogger.getAppender(ATHENA_LOG_APPENDER_NAME);
+
+    if (appender != null) {
+      return Optional.ofNullable(
+          (AuditLogsS3TimeBasedRollingPolicy<ILoggingEvent>) appender.getRollingPolicy());
+    }
+    return Optional.empty();
   }
 
   @Bean
