@@ -47,12 +47,15 @@ public class AthenaService {
       @Value("${cerberus.environmentName}") String environmentName,
       AthenaClientFactory athenaClientFactory) {
 
+    log.info("Athena Service initialized");
+
     this.environmentName = environmentName;
     this.athenaClientFactory = athenaClientFactory;
   }
 
   public void addPartitionIfMissing(
       String region, String bucket, String year, String month, String day, String hour) {
+    log.info("Athena Service adding partition if missing");
     String partition = String.format("year=%s/month=%s/day=%s/hour=%s", year, month, day, hour);
     String table = String.format(TABLE_TEMPLATE, environmentName);
     if (!partitions.contains(partition)) {

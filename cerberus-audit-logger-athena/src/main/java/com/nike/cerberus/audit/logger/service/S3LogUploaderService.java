@@ -72,6 +72,7 @@ public class S3LogUploaderService {
     this.athenaService = athenaService;
 
     amazonS3 = s3ClientFactory.getClient(bucketRegion);
+    log.info("S3 Uploader Service initialized");
 
     // Inject this into the logback rolling policy which was created before guice land exists
     getRollingPolicy()
@@ -93,6 +94,7 @@ public class S3LogUploaderService {
 
   /** Gets the folder structure to use in S3 to enable dt dynamic partitioning */
   protected String getPartition(String fileName) {
+    log.info("S3 Uploader Service getting partition for filename '{}'", fileName);
     Pattern dtPattern =
         Pattern.compile(".*?(?<year>\\d{4})-(?<month>\\d{2})-(?<day>\\d{2})_(?<hour>\\d{2}).*");
     Matcher matcher = dtPattern.matcher(fileName);
@@ -102,8 +104,10 @@ public class S3LogUploaderService {
       String day = matcher.group("day");
       String hour = matcher.group("hour");
       athenaService.addPartitionIfMissing(bucketRegion, bucket, year, month, day, hour);
+      log.info("s3 Uploader Service partitioned");
       return String.format("partitioned/year=%s/month=%s/day=%s/hour=%s", year, month, day, hour);
     } else {
+      log.info("S3 Uploader Service unpartitioned");
       return "un-partitioned";
     }
   }
@@ -114,7 +118,11 @@ public class S3LogUploaderService {
    * @param filename The log file that has been rolled and is ready to be uploaded to S3
    */
   public void ingestLog(String filename) {
-    executor.execute(() -> processLogFile(filename, 0));
+    executor.execute(
+        () -> {
+          log.info("S3 Uploader Service ingesting log for filename '{}'", filename);
+          processLogFile(filename, 0);
+        });
   }
 
   /**
@@ -192,6 +200,8 @@ public class S3LogUploaderService {
    *     ServerShutdownHook so that it can be registered with the shutdown hooks
    */
   private Optional<AuditLogsS3TimeBasedRollingPolicy<ILoggingEvent>> getRollingPolicy() {
+
+    log.info("S3 Uploader Service getting rolling policy");
 
     if (athenaLoggingEventListenerEnabled) {
       ch.qos.logback.classic.Logger auditLogger =
