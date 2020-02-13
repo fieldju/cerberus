@@ -73,14 +73,6 @@ public class S3LogUploaderService {
 
     amazonS3 = s3ClientFactory.getClient(bucketRegion);
     log.info("S3 Uploader Service initialized");
-
-    // Inject this into the logback rolling policy which was created before guice land exists
-    getRollingPolicy()
-        .ifPresent(
-            policy -> {
-              log.info("S3 Rolling Policy detected injecting S3 Log Uploader Service");
-              policy.setS3LogUploaderService(this);
-            });
   }
 
   /** Convenience method for sleeping */
@@ -201,7 +193,7 @@ public class S3LogUploaderService {
    */
   private Optional<AuditLogsS3TimeBasedRollingPolicy<ILoggingEvent>> getRollingPolicy() {
 
-    log.info("S3 Uploader Service getting rolling policy");
+    log.info("S3 Uploader Service getting rolling policy for shutdown hooks");
 
     if (athenaLoggingEventListenerEnabled) {
       ch.qos.logback.classic.Logger auditLogger =
@@ -210,7 +202,7 @@ public class S3LogUploaderService {
       FiveMinuteRollingFileAppender<ILoggingEvent> appender =
           (FiveMinuteRollingFileAppender<ILoggingEvent>)
               auditLogger.getAppender(ATHENA_LOG_APPENDER);
-      // TODO figure out if appender is always null and when it should not be null
+
       if (appender != null) {
         return Optional.ofNullable(
             (AuditLogsS3TimeBasedRollingPolicy<ILoggingEvent>) appender.getRollingPolicy());

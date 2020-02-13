@@ -25,7 +25,7 @@ public class FiveMinuteRollingFileAppender<E> extends RollingFileAppender<E> {
   @Override
   public void rollover() {
     long currentTime = System.currentTimeMillis();
-    long maxIntervalSinceLastLoggingInMillis = TimeUnit.MINUTES.toMillis(1);
+    long maxIntervalSinceLastLoggingInMillis = TimeUnit.MINUTES.toMillis(5);
 
     if ((currentTime - start) >= maxIntervalSinceLastLoggingInMillis) {
       super.rollover();

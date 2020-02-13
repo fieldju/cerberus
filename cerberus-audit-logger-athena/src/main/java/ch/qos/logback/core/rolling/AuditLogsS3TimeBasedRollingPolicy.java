@@ -20,11 +20,13 @@ import com.nike.cerberus.audit.logger.service.S3LogUploaderService;
 import com.nike.internal.util.StringUtils;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.stream.Stream;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 /** Rolling policy that will copy audit logs to S3 if enabled when the logs roll. */
+@Slf4j
 @Component
 public class AuditLogsS3TimeBasedRollingPolicy<E> extends TimeBasedRollingPolicy<E> {
 
@@ -36,9 +38,13 @@ public class AuditLogsS3TimeBasedRollingPolicy<E> extends TimeBasedRollingPolicy
   @Autowired
   public AuditLogsS3TimeBasedRollingPolicy(
       @Value("${cerberus.audit.athena.bucket}") String bucket,
-      @Value("${cerberus.audit.athena.bucketRegion}") String bucketRegion) {
+      @Value("${cerberus.audit.athena.bucketRegion}") String bucketRegion,
+      S3LogUploaderService s3LogUploaderService) {
     this.bucket = bucket;
     this.bucketRegion = bucketRegion;
+
+    setS3LogUploaderService(s3LogUploaderService);
+    log.info("AuditLogsS3TimeBasedRollingPolicy initialized");
   }
 
   @Autowired
