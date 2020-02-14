@@ -77,6 +77,7 @@ public class AuditLogsS3TimeBasedRollingPolicy<E> extends TimeBasedRollingPolicy
         s3LogUploaderService.ingestLog(filename);
         log.info("Log ingested in policy rollover for: " + filename);
       } else {
+        log.info("add this file to queue in policy: " + filename);
         logChunkFileS3Queue.offer(filename);
       }
     }
