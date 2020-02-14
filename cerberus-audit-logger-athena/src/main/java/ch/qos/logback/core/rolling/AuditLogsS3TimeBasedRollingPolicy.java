@@ -50,7 +50,7 @@ public class AuditLogsS3TimeBasedRollingPolicy<E> extends TimeBasedRollingPolicy
   @Autowired
   public void setS3LogUploaderService(S3LogUploaderService s3LogUploaderService) {
     this.s3LogUploaderService = s3LogUploaderService;
-    log.info("Setting up S3 Uploader Service in policy");
+    log.info("Setting up S3 Uploader Service in policy: " + logChunkFileS3Queue.size());
     if (logChunkFileS3Queue.size() > 0) {
       Stream.generate(() -> logChunkFileS3Queue.poll())
           .forEach(
