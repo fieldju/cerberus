@@ -50,12 +50,19 @@ public class AuditLogsS3TimeBasedRollingPolicy<E> extends TimeBasedRollingPolicy
   @Autowired
   public void setS3LogUploaderService(S3LogUploaderService s3LogUploaderService) {
     this.s3LogUploaderService = s3LogUploaderService;
+    log.info("Setting up S3 Uploader Service in policy");
     if (logChunkFileS3Queue.size() > 0) {
-      Stream.generate(() -> logChunkFileS3Queue.poll()).forEach(s3LogUploaderService::ingestLog);
+      Stream.generate(() -> logChunkFileS3Queue.poll())
+          .forEach(
+              filename -> {
+                s3LogUploaderService.ingestLog(filename);
+                log.info("Log ingested in policy for: " + filename);
+              });
     }
   }
 
   private boolean isS3AuditLogCopyingEnabled() {
+    log.info("isS3AuditLogCopyingEnabled hit");
     return StringUtils.isNotBlank(bucket) && StringUtils.isNotBlank(bucketRegion);
   }
 
@@ -63,10 +70,12 @@ public class AuditLogsS3TimeBasedRollingPolicy<E> extends TimeBasedRollingPolicy
   public void rollover() throws RolloverFailure {
     super.rollover();
 
+    log.info("Policy rollover hit");
     if (isS3AuditLogCopyingEnabled()) {
       String filename = timeBasedFileNamingAndTriggeringPolicy.getElapsedPeriodsFileName() + ".gz";
       if (s3LogUploaderService != null) {
         s3LogUploaderService.ingestLog(filename);
+        log.info("Log ingested in policy rollover for: " + filename);
       } else {
         logChunkFileS3Queue.offer(filename);
       }

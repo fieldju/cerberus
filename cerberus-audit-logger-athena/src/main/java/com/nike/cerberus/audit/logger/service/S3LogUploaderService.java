@@ -72,7 +72,7 @@ public class S3LogUploaderService {
     this.athenaService = athenaService;
 
     amazonS3 = s3ClientFactory.getClient(bucketRegion);
-    log.info("S3 Uploader Service initialized");
+    log.info("S3 Uploader Service initialized with additional logging statements");
   }
 
   /** Convenience method for sleeping */

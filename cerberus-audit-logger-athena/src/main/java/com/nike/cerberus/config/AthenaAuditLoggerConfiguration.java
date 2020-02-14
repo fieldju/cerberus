@@ -94,10 +94,13 @@ public class AthenaAuditLoggerConfiguration {
     logger.setLevel(Level.INFO);
     logger.setAdditive(false);
     athenaAuditLogger = logger;
+
+    athenaAuditLogger.info("completed athena audit logger configuration");
   }
 
   @Bean
   public Logger getAthenaAuditLogger() {
+    athenaAuditLogger.info("retrieving athena audit logger: " + athenaAuditLogger.getName());
     return athenaAuditLogger;
   }
 }

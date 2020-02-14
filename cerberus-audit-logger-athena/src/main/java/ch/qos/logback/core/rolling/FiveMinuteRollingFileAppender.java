@@ -17,8 +17,10 @@
 package ch.qos.logback.core.rolling;
 
 import java.util.concurrent.TimeUnit;
+import lombok.extern.slf4j.Slf4j;
 
 /** Appender that will roll the logs every 5 minutes */
+@Slf4j
 public class FiveMinuteRollingFileAppender<E> extends RollingFileAppender<E> {
   private long start = System.currentTimeMillis();
 
@@ -26,10 +28,11 @@ public class FiveMinuteRollingFileAppender<E> extends RollingFileAppender<E> {
   public void rollover() {
     long currentTime = System.currentTimeMillis();
     long maxIntervalSinceLastLoggingInMillis = TimeUnit.MINUTES.toMillis(5);
-
+    log.info("In Appender rollover");
     if ((currentTime - start) >= maxIntervalSinceLastLoggingInMillis) {
       super.rollover();
       start = System.currentTimeMillis();
+      log.info("rollover happening in appender");
     }
   }
 }
